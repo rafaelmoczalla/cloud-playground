@@ -1,0 +1,75 @@
+version: "3.9"
+
+services:
+  k3s-server:
+    image: rancher/k3s:v1.33.2-k3s1
+    privileged: true
+    hostname: k3s-server
+    ports:
+      - "6443:6443"
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "k3s server --cluster-init &
+      while [ ! -f /var/lib/rancher/k3s/server/node-token ]; do sleep 1; done;
+      cp /var/lib/rancher/k3s/server/node-token /shared/node-token;
+      wait"
+    volumes:
+      - server-data:/var/lib/rancher/k3s
+      - ./kubeconfig:/etc/rancher/k3s
+      - shared-token:/shared
+    networks:
+      - k3s-net
+
+  k3s-agent1:
+    image: rancher/k3s:v1.33.2-k3s1
+    privileged: true
+    depends_on:
+      - k3s-server
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "sleep 20; while [ ! -f /shared/node-token ]; do echo 'Waiting for token...'; sleep 2; done;
+      k3s agent --server https://k3s-server:6443 --token $(cat /shared/node-token)"
+    volumes:
+      - shared-token:/shared
+    networks:
+      - k3s-net
+    hostname: agent1
+
+  k3s-agent2:
+    image: rancher/k3s:v1.33.2-k3s1
+    privileged: true
+    depends_on:
+      - k3s-server
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "sleep 20; while [ ! -f /shared/node-token ]; do echo 'Waiting for token...'; sleep 2; done;
+      k3s agent --server https://k3s-server:6443 --token $(cat /shared/node-token)"
+    volumes:
+      - shared-token:/shared
+    networks:
+      - k3s-net
+    hostname: agent2
+
+  k3s-agent3:
+    image: rancher/k3s:v1.33.2-k3s1
+    privileged: true
+    depends_on:
+      - k3s-server
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "sleep 20; while [ ! -f /shared/node-token ]; do echo 'Waiting for token...'; sleep 2; done;
+      k3s agent --server https://k3s-server:6443 --token $(cat /shared/node-token)"
+    volumes:
+      - shared-token:/shared
+    networks:
+      - k3s-net
+    hostname: agent3
+
+volumes:
+  server-data:
+  shared-token:
+
+networks:
+  k3s-net:
+
+  
